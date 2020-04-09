@@ -1,0 +1,195 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title></title>
+    <style>
+        td {
+            width: 50px;
+            height: 50px;
+        }
+        
+        input{
+            width: 50px;
+            height: 50px;
+    </style>
+	<script>
+		/* budu uvazovat 4 mozne stavy aplikace:
+		1 = pocatecni stav (nenastavena zadna hodnota, tj. oba operandy i operator jsou prazdne)
+		2 = zadan prvni operand
+		3 = zadan operator (tj. prvni operand a operator jsou zadany, druhy operand jeste ne)
+		4 = zadany oba operandy i operator => mozno zobrazit vysledek a priradit ho do prvniho operandu, druhy operand smazat 
+		    (posleze pri '=' se vratim do stavu 2, pri zadani nejakeho pocetniho operatoru se vratim do stavu 3)
+		*/
+		
+		operand1 = "";
+		operand2 = "";
+		operator = "";
+		stav = 1;
+		
+		function addDigit(znak) {
+			if (stav == 1 || stav == 2) {  // tj. zadavam prvni operand (at uz v nem neco mam, nebo do nej jdu zapsat prvni cislici)
+				operand1 += znak;
+				stav = 2;
+			} else {                       // tj. zadavam druhy operand (at uz v nem neco mam, nebo do nej jdu zapsat prvni cislici)
+				operand2 += znak;
+				stav = 4;                  // nactene oba operandy i operator, mozno zobrazit vysledek
+			}
+			updateDisplay();
+		}
+		
+		function setOperator(paramOperator) {
+			if (stav == 1) {                 // zadani operatoru driv nez kdo zada jakekoliv cislo
+				if (paramOperator == '-') {  // zadavani zaporneho cisla na zacatku vypoctu
+					operand1 = '-';
+					updateDisplay();
+				}
+				return;
+			}
+			
+			if (stav == 4) { 
+				/* uz byl zadan 1. operand, operator i druhy operand, takze pri dalsi pocetni operaci spocti (mezi)vysledek (pomoci puvodniho operatoru) a uloz ho do operandu1 */
+				operand1 = performCalculation();
+				operand2 = "";
+			} 
+
+			/*  Nasledne prejdi do stavu 3 (tj. zadany prvni operand a operator) a aktualizuj operator tim nove zadanym	
+				- to se ale musi provest ve vsech pripadech, takze to hodim az za ten IF vyse...
+			*/
+			stav = 3;
+			operator = paramOperator;  // aktualizuj operator tim nove zadanym
+			updateDisplay();
+		}
+		
+		// po stisknuti Enteru nebo '=' se spocita vysledek
+		function performCalculation() {
+			op1 = parseFloat(operand1);
+			op2 = parseFloat(operand2);
+			var vysledek;
+			
+			switch(operator) {
+			  case "+":
+				vysledek = op1 + op2;
+				break;
+			  case "-":
+				vysledek = op1 - op2;
+				break;
+			  case "*":
+				vysledek = op1 * op2;
+				break;
+			  case "/":
+				vysledek = op1 / op2;
+				break;
+			}
+			return vysledek.toString();
+		}
+		
+		function getResult() {
+			if (stav == 4) { 
+				/* uz byl zadan 1. operand, operator i druhy operand, takze pri dalsi pocetni operaci spocti (mezi)vysledek (pomoci puvodniho operatoru) a uloz ho do operandu1 */
+				operand1 = performCalculation();
+				operand2 = "";
+				operator = "";
+				stav = 2;  // nacteny operand1, ale zatim zadny operator
+				updateDisplay();
+			}
+		}
+		
+		function clearValues() {
+			stav = 1;
+			operand1 = "";
+			operand2 = "";
+			operator = "";
+			updateDisplay();
+		}
+		
+		function smazPosledniZnak() {
+			if (stav == 1 || stav == 2) {  // tj. zadavam prvni operand (at uz v nem neco mam, nebo do nej jdu zapsat prvni cislici)
+				operand1 = operand1.substring(0, operand1.length-1);
+				if (operand1 == "") {
+					stav = 1;  // smazala jsem cely prvni operand - vrat se na pocatek do stavu 1
+				}
+			} else {                       // tj. zadavam druhy operand (at uz v nem neco mam, nebo do nej jdu zapsat prvni cislici)
+				operand2 = operand2.substring(0, operand2.length-1);
+				if (operand2 == "") {
+					stav = 3;  // smazala jsem cely druhy operand - vrat se do stavu 3 (kdy je treba mozne zmenit operator)
+				}
+			}
+			updateDisplay();
+
+		}
+		
+		function updateDisplay() {
+			document.calc.displej.value = (stav == 4) ? operand2 : operand1; // pouze pokud zadavam uz druhy operand, budu zobrazovat druhy operand, jinak ten prvni
+			document.calc.typOperace.value = operator;
+		}
+		
+		/* - tohle mi umozni sledovat vsechny klavesove udalosti, kdyz je stranka aktivni (tj. nemusim byt v zadnem text fieldu ani mit nejaky prvek ve strance aktivni)*/
+		document.onkeydown = function keyPressed(event) {
+			var znak = event.key;  // nacteny znak
+
+			if ((znak >= '0' && znak <= '9') || znak == '.') {  // zadani cislice nebo desetinne carky priretezuje zadany znak do operandu
+				addDigit(znak);
+			} else if (event.keyCode == 13) {  // zadanim Enteru necham spocitat vysledek stejne jako s klavesou '='
+				getResult();
+			} else if (event.keyCode == 8) {
+				smazPosledniZnak();
+			} else {
+				switch (znak) {
+					case '+':  case '-':  case '*':  case '/':  
+						setOperator(znak);
+						break;
+					case 'c':
+						clearValues();
+						break;
+					case '=':
+						getResult();
+						break;
+				}
+
+			}
+		}
+	</script>
+    
+  </head>
+  <body>
+	<form name="calc">
+		<table style="width: 215px; margin: 50px auto; border: 2px solid black; padding: 10px; background-color: black;">
+			<tr>
+				<td colspan=3><input type="text" name="displej" placeholder="0" disabled
+					style="width: 159px; border: 0; padding-left: 10px; background-color: black; color: white;"></td>
+					<!-- Diky disabled nehrozi, ze by nekdo neco zacal psat do displeje kalkulacky -->
+				<td><input type="text" name="typOperace" style="text-align: center; border: 0; background-color: black; color: white;"></td>
+			</tr>
+			<tr>
+				<td><input type="button" id="7" value="7" onclick="addDigit('7')"></td>
+				<td><input type="button" id="8" value="8" onclick="addDigit('8')"></td>
+				<td><input type="button" id="9" value="9" onclick="addDigit('9')"></td>
+				<td><input type="button" id="/" value="/" onclick="setOperator('/')"></td>
+			</tr>
+			<tr>
+				<td><input type="button" id="4" value="4" onclick="addDigit('4')"></td>
+				<td><input type="button" id="5" value="5" onclick="addDigit('5')"></td>
+				<td><input type="button" id="6" value="6" onclick="addDigit('6')"></td>
+				<td><input type="button" id="*" value="*" onclick="setOperator('*')"></td>
+			</tr>
+			<tr>
+				<td><input type="button" id="1" value="1" onclick="addDigit('1')"></td>
+				<td><input type="button" id="2" value="2" onclick="addDigit('2')"></td>
+				<td><input type="button" id="3" value="3" onclick="addDigit('3')"></td>
+				<td><input type="button" id="+" value="+" onclick="setOperator('+')"></td>
+			</tr>
+			<tr>
+				<td><input type="reset" id="C" value="C" onclick="clearValues()"></td>
+				<td><input type="button" id="0" value="0" onclick="addDigit('0')"></td>
+				<td><input type="button" id="." value="." onclick="addDigit('.')"></td>
+				<td><input type="button" id="-" value="-" onclick="setOperator('-')"></td>
+			</tr>
+			<tr>
+				<td><input type="button" id="backspace" value="<" onclick="smazPosledniZnak()"></td>
+				<td colspan=3><input type="button" id="=" value="=" onclick="getResult()" style="width: 100%; font-weight: bold; background-color: lightSteelBlue; margin-top: 1px;"></td>
+			</tr>
+		</table>
+	</form>
+  </body>
+</html>
